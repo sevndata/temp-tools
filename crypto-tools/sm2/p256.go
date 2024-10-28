@@ -832,23 +832,23 @@ func sm2P256ReduceDegree(a *sm2P256FieldElement, b *sm2P256LargeFieldElement) {
 			}
 			if tmp[i+4] < 0x20000000 {
 				tmp[i+4] += 0x20000000 & xMask
-				tmp[i+4] -= set4 // 借位
+				tmp[i+4] -= set4
 				tmp[i+4] -= x >> 18
 				if tmp[i+5] < 0x10000000 {
 					tmp[i+5] += 0x10000000 & xMask
-					tmp[i+5] -= 1 // 借位
+					tmp[i+5] -= 1
 					if tmp[i+6] < 0x20000000 {
 						set7 = 1
 						tmp[i+6] += 0x20000000 & xMask
-						tmp[i+6] -= 1 // 借位
+						tmp[i+6] -= 1
 					} else {
-						tmp[i+6] -= 1 // 借位
+						tmp[i+6] -= 1
 					}
 				} else {
 					tmp[i+5] -= 1
 				}
 			} else {
-				tmp[i+4] -= set4 // 借位
+				tmp[i+4] -= set4
 				tmp[i+4] -= x >> 18
 			}
 			if tmp[i+7] < 0x10000000 {
@@ -867,7 +867,7 @@ func sm2P256ReduceDegree(a *sm2P256FieldElement, b *sm2P256LargeFieldElement) {
 					tmp[i+9] += (x >> 1) & xMask
 				}
 			} else {
-				tmp[i+7] -= set7 // 借位
+				tmp[i+7] -= set7 //
 				tmp[i+7] -= (x << 24) & bottom28Bits
 				tmp[i+8] += (x << 28) & bottom29Bits
 				if tmp[i+8] < 0x20000000 {

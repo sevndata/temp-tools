@@ -39,7 +39,6 @@ type sm2Cipher struct {
 	CipherText  []byte
 }
 
-// The SM2's private key contains the public key
 func (priv *PrivateKey) Public() crypto.PublicKey {
 	return &priv.PublicKey
 }
@@ -48,7 +47,6 @@ var errZeroParam = errors.New("zero parameter")
 var one = new(big.Int).SetInt64(1)
 var two = new(big.Int).SetInt64(2)
 
-// sign format = 30 + len(z) + 02 + len(r) + r + 02 + len(s) + s, z being what follows its size, ie 02+len(r)+r+02+len(s)+s
 func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerOpts) ([]byte, error) {
 	r, s, err := Sm2Sign(priv, msg, nil, random)
 	if err != nil {
@@ -84,7 +82,6 @@ func (pub *PublicKey) Sm3Digest(msg, uid []byte) ([]byte, error) {
 	return e.Bytes(), nil
 }
 
-// ****************************Encryption algorithm****************************//
 func (pub *PublicKey) EncryptAsn1(data []byte, random io.Reader) ([]byte, error) {
 	return EncryptAsn1(pub, data, random)
 }
@@ -93,18 +90,13 @@ func (priv *PrivateKey) DecryptAsn1(data []byte) ([]byte, error) {
 	return DecryptAsn1(priv, data)
 }
 
-// **************************Key agreement algorithm**************************//
-// KeyExchangeB 协商第二部，用户B调用， 返回共享密钥k
 func KeyExchangeB(klen int, ida, idb []byte, priB *PrivateKey, pubA *PublicKey, rpri *PrivateKey, rpubA *PublicKey) (k, s1, s2 []byte, err error) {
 	return keyExchange(klen, ida, idb, priB, pubA, rpri, rpubA, false)
 }
 
-// KeyExchangeA 协商第二部，用户A调用，返回共享密钥k
 func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, rpri *PrivateKey, rpubB *PublicKey) (k, s1, s2 []byte, err error) {
 	return keyExchange(klen, ida, idb, priA, pubB, rpri, rpubB, true)
 }
-
-//****************************************************************************//
 
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	digest, err := priv.PublicKey.Sm3Digest(msg, uid)
@@ -118,7 +110,7 @@ func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int
 		return nil, nil, errZeroParam
 	}
 	var k *big.Int
-	for { // 调整算法细节以实现SM2
+	for {
 		for {
 			k, err = randFieldElement(c, random)
 			if err != nil {
@@ -183,14 +175,6 @@ func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 	return x.Cmp(r) == 0
 }
 
-/*
-	    za, err := ZA(pub, uid)
-		if err != nil {
-			return
-		}
-		e, err := msgHash(za, msg)
-		hash=e.getBytes()
-*/
 func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	c := pub.Curve
 	N := c.Params().N
@@ -202,7 +186,6 @@ func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 		return false
 	}
 
-	// 调整算法细节以实现SM2
 	t := new(big.Int).Add(r, s)
 	t.Mod(t, N)
 	if t.Sign() == 0 {
@@ -220,13 +203,6 @@ func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	return x.Cmp(r) == 0
 }
 
-/*
- * sm2密文结构如下:
- *  x
- *  y
- *  hash
- *  CipherText
- */
 func Encrypt(pub *PublicKey, data []byte, random io.Reader, mode int) ([]byte, error) {
 	length := len(data)
 	for {
@@ -254,15 +230,15 @@ func Encrypt(pub *PublicKey, data []byte, random io.Reader, mode int) ([]byte, e
 		if n := len(y2Buf); n < 32 {
 			y2Buf = append(zeroByteSlice()[:32-n], y2Buf...)
 		}
-		c = append(c, x1Buf...) // x分量
-		c = append(c, y1Buf...) // y分量
+		c = append(c, x1Buf...)
+		c = append(c, y1Buf...)
 		tm := []byte{}
 		tm = append(tm, x2Buf...)
 		tm = append(tm, data...)
 		tm = append(tm, y2Buf...)
 		h := sm3.Sm3Sum(tm)
 		c = append(c, h...)
-		ct, ok := kdf(length, x2Buf, y2Buf) // 密文
+		ct, ok := kdf(length, x2Buf, y2Buf)
 		if !ok {
 			continue
 		}
@@ -278,9 +254,9 @@ func Encrypt(pub *PublicKey, data []byte, random io.Reader, mode int) ([]byte, e
 			c1 := make([]byte, 64)
 			c2 := make([]byte, len(c)-96)
 			c3 := make([]byte, 32)
-			copy(c1, c[:64])   //x1,y1
-			copy(c3, c[64:96]) //hash
-			copy(c2, c[96:])   //密文
+			copy(c1, c[:64])
+			copy(c3, c[64:96])
+			copy(c2, c[96:])
 			ciphertext := []byte{}
 			ciphertext = append(ciphertext, c1...)
 			ciphertext = append(ciphertext, c2...)
@@ -301,9 +277,9 @@ func Decrypt(priv *PrivateKey, data []byte, mode int) ([]byte, error) {
 		c1 := make([]byte, 64)
 		c2 := make([]byte, len(data)-96)
 		c3 := make([]byte, 32)
-		copy(c1, data[:64])             //x1,y1
-		copy(c2, data[64:len(data)-32]) //密文
-		copy(c3, data[len(data)-32:])   //hash
+		copy(c1, data[:64])
+		copy(c2, data[64:len(data)-32])
+		copy(c3, data[len(data)-32:])
 		c := []byte{}
 		c = append(c, c1...)
 		c = append(c, c3...)
@@ -343,15 +319,6 @@ func Decrypt(priv *PrivateKey, data []byte, mode int) ([]byte, error) {
 	return c, nil
 }
 
-// keyExchange 为SM2密钥交换算法的第二部和第三步复用部分，协商的双方均调用此函数计算共同的字节串
-// klen: 密钥长度
-// ida, idb: 协商双方的标识，ida为密钥协商算法发起方标识，idb为响应方标识
-// pri: 函数调用者的密钥
-// pub: 对方的公钥
-// rpri: 函数调用者生成的临时SM2密钥
-// rpub: 对方发来的临时SM2公钥
-// thisIsA: 如果是A调用，文档中的协商第三步，设置为true，否则设置为false
-// 返回 k 为klen长度的字节串
 func keyExchange(klen int, ida, idb []byte, pri *PrivateKey, pub *PublicKey, rpri *PrivateKey, rpub *PublicKey, thisISA bool) (k, s1, s2 []byte, err error) {
 	curve := P256Sm2()
 	N := curve.Params().N
@@ -409,7 +376,6 @@ func msgHash(za, msg []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(e.Sum(nil)[:32]), nil
 }
 
-// ZA = H256(ENTLA || IDA || a || b || xG || yG || xA || yA)
 func ZA(pub *PublicKey, uid []byte) ([]byte, error) {
 	za := sm3.New()
 	uidLen := len(uid)
@@ -440,7 +406,6 @@ func ZA(pub *PublicKey, uid []byte) ([]byte, error) {
 	return za.Sum(nil)[:32], nil
 }
 
-// 32byte
 func zeroByteSlice() []byte {
 	return []byte{
 		0, 0, 0, 0,
@@ -454,9 +419,6 @@ func zeroByteSlice() []byte {
 	}
 }
 
-/*
-sm2加密，返回asn.1编码格式的密文内容
-*/
 func EncryptAsn1(pub *PublicKey, data []byte, rand io.Reader) ([]byte, error) {
 	cipher, err := Encrypt(pub, data, rand, C1C3C2)
 	if err != nil {
@@ -465,9 +427,6 @@ func EncryptAsn1(pub *PublicKey, data []byte, rand io.Reader) ([]byte, error) {
 	return CipherMarshal(cipher)
 }
 
-/*
-sm2解密，解析asn.1编码格式的密文内容
-*/
 func DecryptAsn1(pub *PrivateKey, data []byte) ([]byte, error) {
 	cipher, err := CipherUnmarshal(data)
 	if err != nil {
@@ -476,14 +435,6 @@ func DecryptAsn1(pub *PrivateKey, data []byte) ([]byte, error) {
 	return Decrypt(pub, cipher, C1C3C2)
 }
 
-/*
-*sm2密文转asn.1编码格式
-*sm2密文结构如下:
-*  x
-*  y
-*  hash
-*  CipherText
- */
 func CipherMarshal(data []byte) ([]byte, error) {
 	data = data[1:]
 	x := new(big.Int).SetBytes(data[:32])
@@ -493,9 +444,6 @@ func CipherMarshal(data []byte) ([]byte, error) {
 	return asn1.Marshal(sm2Cipher{x, y, hash, cipherText})
 }
 
-/*
-sm2密文asn.1编码格式转C1|C3|C2拼接格式
-*/
 func CipherUnmarshal(data []byte) ([]byte, error) {
 	var cipher sm2Cipher
 	_, err := asn1.Unmarshal(data, &cipher)
@@ -519,15 +467,13 @@ func CipherUnmarshal(data []byte) ([]byte, error) {
 		y = append(zeroByteSlice()[:32-n], y...)
 	}
 	c := []byte{}
-	c = append(c, x...)          // x分量
-	c = append(c, y...)          // y分
-	c = append(c, hash...)       // x分量
-	c = append(c, cipherText...) // y分
+	c = append(c, x...)
+	c = append(c, y...)
+	c = append(c, hash...)
+	c = append(c, cipherText...)
 	return append([]byte{0x04}, c...), nil
 }
 
-// keXHat 计算 x = 2^w + (x & (2^w-1))
-// 密钥协商算法辅助函数
 func keXHat(x *big.Int) (xul *big.Int) {
 	buf := x.Bytes()
 	for i := 0; i < len(buf)-16; i++ {
@@ -647,7 +593,6 @@ func getLastBit(a *big.Int) uint {
 	return a.Bit(0)
 }
 
-// crypto.Decrypter
 func (priv *PrivateKey) Decrypt(_ io.Reader, msg []byte, _ crypto.DecrypterOpts) (plaintext []byte, err error) {
 	return Decrypt(priv, msg, C1C3C2)
 }
