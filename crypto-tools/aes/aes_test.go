@@ -8,7 +8,7 @@ import (
 
 func TestAes(t *testing.T) {
 
-	key, iv, err := generateKeyAndIV(32)
+	key, iv, err := GenerateKeyAndIV(32)
 	if err != nil {
 		fmt.Println("Error generating key and IV:", err)
 		return
@@ -21,7 +21,7 @@ func TestAes(t *testing.T) {
 
 	plainText := []byte("Hello, this is a secret message!")
 
-	encrypted, err := encrypt(plainText, key, iv)
+	encrypted, err := Encrypt(plainText, key, iv)
 	if err != nil {
 		fmt.Println("Error encrypting:", err)
 		return
@@ -30,7 +30,7 @@ func TestAes(t *testing.T) {
 	encryptedBase64 := base64.StdEncoding.EncodeToString(encrypted)
 	fmt.Println("Encrypted (Base64):", encryptedBase64)
 
-	decrypted, err := decrypt(encrypted, key, iv)
+	decrypted, err := Decrypt(encrypted, key, iv)
 	if err != nil {
 		fmt.Println("Error decrypting:", err)
 		return

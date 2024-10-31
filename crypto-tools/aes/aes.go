@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-func generateKeyAndIV(keySize int) ([]byte, []byte, error) {
+func GenerateKeyAndIV(keySize int) ([]byte, []byte, error) {
 	key := make([]byte, keySize)
 	iv := make([]byte, aes.BlockSize)
 
@@ -22,7 +22,7 @@ func generateKeyAndIV(keySize int) ([]byte, []byte, error) {
 	return key, iv, nil
 }
 
-func encrypt(plainText []byte, key []byte, iv []byte) ([]byte, error) {
+func Encrypt(plainText []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func encrypt(plainText []byte, key []byte, iv []byte) ([]byte, error) {
 	return cipherText, nil
 }
 
-func decrypt(cipherText []byte, key []byte, iv []byte) ([]byte, error) {
+func Decrypt(cipherText []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
