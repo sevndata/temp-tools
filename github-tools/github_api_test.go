@@ -2,13 +2,16 @@ package github_tools
 
 import (
 	"testing"
-	"time"
 )
 
 func TestDeleteDeployment(t *testing.T) {
-	DeleteAllDeployments()
+	//DeleteAllDeployments()
 }
 
 func TestTime(t *testing.T) {
-	println(time.Now().UTC().Unix() + 24*3600)
+	//println(time.Now().UTC().Unix() + 24*3600)
+}
+
+func TestGetAllCommit(t *testing.T) {
+	GetAllCommit()
 }
